@@ -7,7 +7,7 @@ University of Toronto
 Coming soon! Stay tune!
 
 -----
-examples: example code to run experiments
+examples: example script to reproduce experiments
 
 recipes: useful functions for data preprocessing, experimental configs,...
 
