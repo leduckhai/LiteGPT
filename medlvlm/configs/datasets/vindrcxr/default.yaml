@@ -1,0 +1,6 @@
+datasets:
+  vindrcxr_train:
+    data_type: images
+    build_info:
+      image_path: /path/to/images/train
+      ann_path: /path/to/annotations/train
