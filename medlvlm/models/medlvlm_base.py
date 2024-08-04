@@ -13,7 +13,7 @@ from medlvlm.conversation.conversation import StoppingCriteriaSub
 
 class MedLVLMBase(BaseModel):
     """
-    Base class for MiniGPT-4 and MiniGPT-v2
+    Base class for MedLVLMBase
     """
 
     def __init__(
@@ -217,8 +217,17 @@ class MedLVLMBase(BaseModel):
 
     def preparing_embedding(self, samples):
         ### prepare input tokens
+        if "audio" in samples and "instruction_input" in samples:
+            for instruction_input in samples["instruction_input"]:
+                if not instruction_input.endswith("<Img><ImageHere></Img>"):
+                    raise ValueError("You cannot specify both audio and instruction_input at the same time")
+
         if 'image' in samples:
             img_embeds, img_atts = self.encode_img(samples["image"])
+            if 'audio' in samples:
+                audio_embeds, audio_atts = self.encode_audio(samples["audio"])
+                img_embeds = torch.cat([img_embeds, audio_embeds], dim=1)
+                img_atts = torch.cat([img_atts, audio_atts], dim=1)
         else:
             img_embeds = img_atts = None
 
@@ -324,8 +333,9 @@ class MedLVLMBase(BaseModel):
     @torch.no_grad()
     def generate(
         self,
-        images,
-        texts,
+        images=None,
+        audios=None,
+        texts=None,
         num_beams=1,
         max_new_tokens=20,
         min_length=1,
@@ -339,11 +349,23 @@ class MedLVLMBase(BaseModel):
         '''
             function for generate test use
         '''
-
+        if audios is not None and texts is not None:
+            for text in texts:
+                if not text.endswith("<Img><ImageHere></Img>"):
+                    raise ValueError("You cannot specify both audio and texts at the same time")
+                
+        if images is not None and texts is None:
+            raise ValueError("You must specify <Img><ImageHere></Img> in the text")
+        
         stopping_criteria = StoppingCriteriaList([StoppingCriteriaSub(
             stops=[torch.tensor([i]).to(self.device) for i in stop_words_ids])])
 
         img_embeds, atts_img = self.encode_img(images.to(self.device))
+        if audios is not None:
+            audio_embeds, atts_audio = self.encode_audio(audios.to(self.device))
+            img_embeds = torch.cat([img_embeds, audio_embeds], dim=1)
+            atts_img = torch.cat([atts_img, atts_audio], dim=1)
+
         image_lists = [[image_emb[None]] for image_emb in img_embeds]
 
         batch_embs = [self.get_context_emb(text, img_list) for text, img_list in zip(texts, image_lists)]

@@ -1,4 +1,4 @@
-from evaluate import load
+from examples.litegpt.evaluate import load
 
 bleu_metric = load("bleu")
 

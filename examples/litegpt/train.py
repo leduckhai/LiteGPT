@@ -7,6 +7,9 @@
 
 import argparse
 import os
+import sys
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '....')))
+# print(sys.path.append("/home/nngocson/FPT/LiteGPT/"))
 import glob
 import random
 import yaml
@@ -29,7 +32,7 @@ from medlvlm.common.utils import now
 
 # imports modules for registration
 from medlvlm.models import *
-from evaluate import *
+from examples.litegpt.evaluate import *
 from medlvlm.processors import *
 from medlvlm.runners import *
 from medlvlm.tasks import *

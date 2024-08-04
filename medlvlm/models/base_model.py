@@ -21,6 +21,7 @@ from peft import (
 from medlvlm.common.dist_utils import download_cached_file
 from medlvlm.common.utils import get_abs_path, is_url
 from .vision_model.builder import build_vision_encoder
+from .text2speech.builder import build_audio_encoder
 
 from transformers import AutoTokenizer
 
@@ -165,6 +166,27 @@ class BaseModel(nn.Module):
 
         logging.info(f'Loading {model_name} Done')
         return visual_encoder, ln_vision, num_concat
+    
+    @classmethod
+    def init_audio_encoder(cls, model_name, freeze, **kwargs):
+        logging.info(f'Loading {model_name}')
+
+        precision = kwargs.get('precision', "fp16")
+        if not freeze:
+            if precision is not None:
+                kwargs["precision"] = "fp32"  # fp16 is not for training
+
+        audio_encoder, num_concat = build_vision_encoder(model_name, **kwargs)
+
+        if freeze:
+            for param in audio_encoder.parameters():
+                param.requires_grad = False
+            audio_encoder = audio_encoder.eval()
+            audio_encoder.train = disabled_train
+            logging.info("freeze audio encoder")
+
+        logging.info(f'Loading {model_name} Done')
+        return audio_encoder, num_concat
 
     def init_llm(cls, language_model_path, bits=8, low_resource=False, low_res_device=0, lora_r=0,
                  lora_target_modules=["q_proj","v_proj"], **lora_kargs):
