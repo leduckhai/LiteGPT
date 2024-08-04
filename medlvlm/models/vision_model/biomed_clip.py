@@ -7,7 +7,7 @@ class BiomedCLIP(nn.Module):
         self.model = create_model_from_pretrained("hf-hub:microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224", return_transform=False).visual.trunk
         self.num_features = 768
 
-    def forward(self, x):
+    def forward(self, x): # (b, c, h, w)
         return self.model.forward_features(x)[:, 1:, :]
     
 def create_biomed_clip(**kwargs):

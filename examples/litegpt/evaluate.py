@@ -1,9 +1,11 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import argparse
 import json
 from medlvlm.datasets.datasets.vindrcxr_dataset import VinDrCXRDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import os
 from medlvlm.common.registry import registry
 from medlvlm.common.config import Config
 from medlvlm.conversation.conversation import Conversation, SeparatorStyle

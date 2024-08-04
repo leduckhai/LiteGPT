@@ -1,8 +1,5 @@
 # LiteGPT
-```
-Le Duc Khai
-University of Toronto
-```
+This page contains information for how to train LiteGPT, based on this [paper](https://www.arxiv.org/abs/2407.12064).
 
 ## Dataset structure
 ```
@@ -29,8 +26,8 @@ For `checkpoint_stage3.pth`, you can load from the pretrained model below:
 ## Installation
 - Python == 3.10.13
 ```bash
-git clone https://github.com/nngocson2002/LVLM-Med.git
-cd LVLM-Med
+git clone https://github.com/leduckhai/LiteGPT.git
+cd LiteGPT
 pip install -r requirements.txt
 ```
 
@@ -59,7 +56,7 @@ After selecting the visual encoder you want, set it [here](train_configs/train_v
 
 ### Run
 ```bash
-torchrun --nproc-per-node NUM_GPU train.py\ 
+torchrun --nproc-per-node NUM_GPU setup.py examples/litegpt/train.py\ 
          --cfg-path train_configs/train_vindrcxr.yaml\
          --cfg-eval-path eval_configs/eval_vindrcxr.yaml\
          --eval-dataset vindrcxr_val
@@ -68,7 +65,20 @@ torchrun --nproc-per-node NUM_GPU train.py\
 ## Evaluation
 If you want to evaluate the model independently instead of during training, follow the [step 2](#set-paths-for-evaluation-after-training) in the Training section, and then run:
 ```bash
-torchrun --nproc-per-node NUM_GPU evaluate.py\ 
+torchrun --nproc-per-node NUM_GPU setup.py examples/litegpt/evaluate.py\ 
          --cfg-path eval_configs/eval_vindrcxr.yaml\
          --eval-dataset vindrcxr_val
+```
+## Citiation
+If you found this technique useful, please cite our paper:
+```bibtex
+@misc{leduc2024litegptlargevisionlanguagemodel,
+      title={LiteGPT: Large Vision-Language Model for Joint Chest X-ray Localization and Classification Task}, 
+      author={Khai Le-Duc and Ryan Zhang and Ngoc Son Nguyen and Tan-Hanh Pham and Anh Dao and Ba Hung Ngo and Anh Totti Nguyen and Truong-Son Hy},
+      year={2024},
+      eprint={2407.12064},
+      archivePrefix={arXiv},
+      primaryClass={eess.IV},
+      url={https://arxiv.org/abs/2407.12064}, 
+}
 ```
