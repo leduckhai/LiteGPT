@@ -91,7 +91,7 @@ class MedLVLMBase(BaseModel):
         ]
         seg_embs = [self.embed_tokens(seg_t) for seg_t in seg_tokens]
 
-        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1]] + [audio]
+        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1], audio[0].to(self.device)] # [audio]
         mixed_embs = torch.cat(mixed_embs, dim=1)
         return mixed_embs
 
@@ -359,7 +359,7 @@ class MedLVLMBase(BaseModel):
         '''
         if audios is not None and texts is not None:
             for text in texts:
-                if not text.endswith("<Img><ImageHere></Img>"):
+                if not text.endswith("<Img><ImageHere></Img> [/INST]"):
                     raise ValueError("You cannot specify both audio and texts at the same time")
                 
         if images is not None and texts is None:
@@ -371,9 +371,11 @@ class MedLVLMBase(BaseModel):
         img_embeds, atts_img = self.encode_img(images.to(self.device))
 
         image_lists = [[image_emb[None]] for image_emb in img_embeds]
-        audios = [[audio[None]] for audio in audios]
 
-        batch_embs = [self.get_context_emb(text, img_list, audio) for text, img_list, audio in zip(texts, image_lists, audios)]
+        audio_embeds, atts_audio = self.encode_audio(audios.to(self.device))
+        audio_embeds = [[audio_embed[None]] for audio_embed in audio_embeds]
+
+        batch_embs = [self.get_context_emb(text, img_list, audio_embed) for text, img_list, audio_embed in zip(texts, image_lists, audio_embeds)]
 
         batch_size = len(batch_embs)
         max_len = max([emb.shape[1] for emb in batch_embs])

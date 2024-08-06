@@ -176,7 +176,7 @@ class BaseModel(nn.Module):
             if precision is not None:
                 kwargs["precision"] = "fp32"  # fp16 is not for training
 
-        audio_encoder, num_concat = build_audio_encoder(model_name, **kwargs)
+        audio_encoder = build_audio_encoder(model_name, **kwargs)
 
         if freeze:
             for param in audio_encoder.parameters():
@@ -186,7 +186,7 @@ class BaseModel(nn.Module):
             logging.info("freeze audio encoder")
 
         logging.info(f'Loading {model_name} Done')
-        return audio_encoder, num_concat
+        return audio_encoder
 
     def init_llm(cls, language_model_path, bits=8, low_resource=False, low_res_device=0, lora_r=0,
                  lora_target_modules=["q_proj","v_proj"], **lora_kargs):
