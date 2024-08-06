@@ -29,7 +29,7 @@ from medlvlm.common.utils import now
 
 # imports modules for registration
 from medlvlm.models import *
-from examples.litegpt.evaluate import *
+from tests.test_evaluate import *
 from medlvlm.processors import *
 from medlvlm.runners import *
 from medlvlm.tasks import *
