@@ -57,8 +57,8 @@ After selecting the visual encoder you want, set it [here](train_configs/train_v
 ### Run
 ```bash
 torchrun --nproc-per-node NUM_GPU setup.py examples/litegpt/train.py\ 
-         --cfg-path train_configs/train_vindrcxr.yaml\
-         --cfg-eval-path eval_configs/eval_vindrcxr.yaml\
+         --cfg-path examples/litegpt/train_configs/train_vindrcxr.yaml\
+         --cfg-eval-path examples/litegpt/eval_configs/eval_vindrcxr.yaml\
          --eval-dataset vindrcxr_val
 ```
 
@@ -66,7 +66,7 @@ torchrun --nproc-per-node NUM_GPU setup.py examples/litegpt/train.py\
 If you want to evaluate the model independently instead of during training, follow the [step 2](#set-paths-for-evaluation-after-training) in the Training section, and then run:
 ```bash
 torchrun --nproc-per-node NUM_GPU setup.py examples/litegpt/evaluate.py\ 
-         --cfg-path eval_configs/eval_vindrcxr.yaml\
+         --cfg-path examples/litegpt/eval_configs/eval_vindrcxr.yaml\
          --eval-dataset vindrcxr_val
 ```
 ## Citiation

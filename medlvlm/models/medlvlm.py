@@ -29,8 +29,9 @@ class MedLVLM(MedLVLMBase):
             img_size=448,
             drop_path_rate=0,
             use_grad_checkpoint=False,
-            vit_precision="fp16",
+            precision="fp16",
             freeze_vision=True,
+            freeze_audio=True,
             language_model="",
             prompt_template='[INST] {} [/INST]',
             max_txt_len=300,
@@ -52,8 +53,9 @@ class MedLVLM(MedLVLMBase):
             img_size=img_size,
             drop_path_rate=drop_path_rate,
             use_grad_checkpoint=use_grad_checkpoint,
-            vit_precision=vit_precision,
+            precision=precision,
             freeze_vision=freeze_vision,
+            freeze_audio=freeze_audio,
             language_model=language_model,
             max_txt_len=max_txt_len,
             max_context_len=max_context_len,
@@ -122,8 +124,9 @@ class MedLVLM(MedLVLMBase):
 
         drop_path_rate = cfg.get("drop_path_rate", 0)
         use_grad_checkpoint = cfg.get("use_grad_checkpoint", False)
-        vit_precision = cfg.get("vit_precision", "fp16")
+        precision = cfg.get("precision", "fp16")
         freeze_vision = cfg.get("freeze_vision", True)
+        freeze_audio = cfg.get("freeze_audio", True)
         low_resource = cfg.get("low_resource", False)
 
         prompt_template = cfg.get("prompt_template", '[INST] {} [/INST]')
@@ -144,8 +147,9 @@ class MedLVLM(MedLVLMBase):
             img_size=img_size,
             drop_path_rate=drop_path_rate,
             use_grad_checkpoint=use_grad_checkpoint,
-            vit_precision=vit_precision,
+            precision=precision,
             freeze_vision=freeze_vision,
+            freeze_audio=freeze_audio,
             language_model=language_model,
             prompt_template=prompt_template,
             max_txt_len=max_txt_len,

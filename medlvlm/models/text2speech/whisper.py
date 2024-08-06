@@ -6,6 +6,7 @@ class WhisperForLiteGPT(nn.Module):
         super().__init__()
         self.asr_encoder = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small").model.encoder
         self.d_model = self.asr_encoder.config.d_model
+        self.pooling = nn.AdaptiveAvgPool2d((256, self.d_model)) # 1500 -> 256
         
     def forward(
         self,
@@ -16,7 +17,7 @@ class WhisperForLiteGPT(nn.Module):
         output_hidden_states=None,
         return_dict=None,
     ):
-        return self.asr_encoder(
+        output = self.asr_encoder(
             input_features,
             attention_mask=attention_mask,
             head_mask=head_mask,
@@ -24,6 +25,8 @@ class WhisperForLiteGPT(nn.Module):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         ).last_hidden_state
+        output = self.pooling(output)
+        return output
     
 def create_whisper(**kwargs):
     precision = kwargs.get("precision", "fp16")
