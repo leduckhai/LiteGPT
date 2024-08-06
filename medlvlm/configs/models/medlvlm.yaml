@@ -6,7 +6,7 @@ model:
   image_size: 448
   drop_path_rate: 0
   use_grad_checkpoint: False
-  vit_precision: "fp16"
+  precision: "fp16"
   freeze_vision: True
 
   # generation configs

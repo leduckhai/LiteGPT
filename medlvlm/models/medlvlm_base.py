@@ -19,11 +19,13 @@ class MedLVLMBase(BaseModel):
     def __init__(
         self,
         vision_model="eva_clip_g",
+        audio_model="whisper",
         img_size=224,
         drop_path_rate=0,
         use_grad_checkpoint=False,
-        vit_precision="fp16",
+        precision="fp16",
         freeze_vision=True,
+        freeze_audio=True,
         language_model="",
         max_txt_len=32,
         max_context_len=3800,
@@ -56,7 +58,13 @@ class MedLVLMBase(BaseModel):
             img_size=img_size, 
             drop_path_rate=drop_path_rate, 
             use_checkpoint=use_grad_checkpoint, 
-            precision=vit_precision
+            precision=precision
+        )
+
+        self.audio_encoder = self.init_audio_encoder(
+            audio_model,
+            freeze_audio,
+            precision=precision
         )
 
         self.max_txt_len = max_txt_len
@@ -72,7 +80,7 @@ class MedLVLMBase(BaseModel):
         self.visual_encoder.to("cpu")
         self.visual_encoder.float()
 
-    def get_context_emb(self, prompt, img_list):
+    def get_context_emb(self, prompt, img_list, audio):
         device = img_list[0].device
         prompt_segs = prompt.split('<ImageHere>')
         assert len(prompt_segs) == len(img_list) + 1, "Unmatched numbers of image placeholders and images."
@@ -83,14 +91,14 @@ class MedLVLMBase(BaseModel):
         ]
         seg_embs = [self.embed_tokens(seg_t) for seg_t in seg_tokens]
 
-        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1]]
+        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1]] + [audio]
         mixed_embs = torch.cat(mixed_embs, dim=1)
         return mixed_embs
 
-    def prompt_wrap(self, img_embeds, atts_img, prompts, lengths=None):
+    def prompt_wrap(self, img_embeds, audio_embeds, img_atts, prompts, lengths=None):
         if prompts is None or len(prompts) == 0:
             # prompts is not provided, just return the original image embedding
-            return img_embeds, atts_img
+            return img_embeds, img_atts
         elif img_embeds is None:
             # prompt is provided but there is no image embedding. return the prompt embedding in right padding
             self.language_tokenizer.padding_side = "right"
@@ -125,7 +133,10 @@ class MedLVLMBase(BaseModel):
                 p_tokens = self.language_tokenizer(
                     p_segs[-1], return_tensors="pt", add_special_tokens=False).to(img_embeds.device)
                 p_embed = self.embed_tokens(p_tokens.input_ids)
-                wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
+                if audio_embeds is None:
+                    wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
+                else:
+                    wrapped_emb = torch.cat([wrapped_emb, p_embed, audio_embeds], dim=1)
                 emb_lists.append(wrapped_emb)
 
             emb_lens = [emb.shape[1] for emb in emb_lists]
@@ -221,13 +232,10 @@ class MedLVLMBase(BaseModel):
             for instruction_input in samples["instruction_input"]:
                 if not instruction_input.endswith("<Img><ImageHere></Img>"):
                     raise ValueError("You cannot specify both audio and instruction_input at the same time")
+            audio_embeds, audio_atts = self.encode_audio(samples["audio"])
 
         if 'image' in samples:
             img_embeds, img_atts = self.encode_img(samples["image"])
-            if 'audio' in samples:
-                audio_embeds, audio_atts = self.encode_audio(samples["audio"])
-                img_embeds = torch.cat([img_embeds, audio_embeds], dim=1)
-                img_atts = torch.cat([img_atts, audio_atts], dim=1)
         else:
             img_embeds = img_atts = None
 
@@ -259,9 +267,9 @@ class MedLVLMBase(BaseModel):
                 # the input is a image train (like videos)
                 bsz, pn, hs = img_embeds.shape
                 img_embeds = img_embeds.reshape(len(samples['image']), -1, pn, hs)
-                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, img_atts, instruction, samples['length'])
+                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, audio_embeds, img_atts, instruction, samples['length'])
             else:
-                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, img_atts, instruction)
+                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, audio_embeds, img_atts, instruction)
 
             ### prepare target tokens
             self.language_tokenizer.padding_side = "right"
@@ -361,14 +369,11 @@ class MedLVLMBase(BaseModel):
             stops=[torch.tensor([i]).to(self.device) for i in stop_words_ids])])
 
         img_embeds, atts_img = self.encode_img(images.to(self.device))
-        if audios is not None:
-            audio_embeds, atts_audio = self.encode_audio(audios.to(self.device))
-            img_embeds = torch.cat([img_embeds, audio_embeds], dim=1)
-            atts_img = torch.cat([atts_img, atts_audio], dim=1)
 
         image_lists = [[image_emb[None]] for image_emb in img_embeds]
+        audios = [[audio[None]] for audio in audios]
 
-        batch_embs = [self.get_context_emb(text, img_list) for text, img_list in zip(texts, image_lists)]
+        batch_embs = [self.get_context_emb(text, img_list, audio) for text, img_list, audio in zip(texts, image_lists, audios)]
 
         batch_size = len(batch_embs)
         max_len = max([emb.shape[1] for emb in batch_embs])

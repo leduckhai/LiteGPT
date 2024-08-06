@@ -176,7 +176,7 @@ class BaseModel(nn.Module):
             if precision is not None:
                 kwargs["precision"] = "fp32"  # fp16 is not for training
 
-        audio_encoder, num_concat = build_vision_encoder(model_name, **kwargs)
+        audio_encoder, num_concat = build_audio_encoder(model_name, **kwargs)
 
         if freeze:
             for param in audio_encoder.parameters():
