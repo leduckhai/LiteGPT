@@ -91,11 +91,13 @@ def evaluate(args):
         results = []
         for batch in tqdm(eval_dataloader):
             images = batch["image"].half()
+            audios = batch["audio"]
             instruction_input = batch["instruction_input"]
             ground_truth = batch["answer"]
             image_ids = batch["image_id"]
             texts = prepare_texts(instruction_input, conv_temp)
             predicts = model.generate(images=images,
+                                      audios=audios,
                                       texts=texts,
                                       max_new_tokens=max_new_tokens,
                                       temperature=temperature,

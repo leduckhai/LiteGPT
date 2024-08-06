@@ -1,0 +1,39 @@
+model:
+  arch: medlvlm
+  model_type: pretrain
+  max_txt_len: 1024
+  image_size: 224
+  end_sym: </s>
+  language_model: "meta-llama/Llama-2-7b-chat-hf"
+  vision_model: "biomed_clip"
+  audio_model: "whisper"
+  ckpt: "path/to/checkpoint"
+  use_grad_checkpoint: true
+  chat_template: true
+  low_resource: true
+  lora_r: 64
+  lora_alpha: 16
+  bits: 8
+datasets:
+  vindrcxr_train:
+    vis_processor:
+      train:
+        name: "blip2_image_eval"
+        image_size: 224
+    text_processor:
+      train:
+        name: "blip_caption"
+evaluation_datasets:
+  vindrcxr_val:
+    eval_file_path: "path/to/grounded_diseases_test.json"
+    img_path: "path/to/images/test"
+    prompt_test: "<your prompt>"
+    batch_size: 4
+    max_new_tokens: 512
+    temperature: 0.6
+    top_p: 0.9
+    do_sample: true
+run:
+  task: image_text_pretrain
+  name: medlvlm_evaluation
+  save_path: "/path/to/save/folder_path"
