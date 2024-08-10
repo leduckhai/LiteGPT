@@ -108,7 +108,7 @@ def main():
     if hasattr(args, 'cfg_eval_path'):
         args.cfg_path = args.cfg_eval_path
 
-        model_path = "{}/{}".format(cfg.run_cfg.output_dir, job_id)
+        model_path = "medlvlm/{}/{}".format(cfg.run_cfg.output_dir, job_id)
         ckpt_paths = glob.glob(os.path.join(model_path, "*.pth"))
         ckpt_names = [os.path.basename(ckp_path) for ckp_path in ckpt_paths]
         last_ckpt_name = sorted(ckpt_names, key=lambda x: int(x.split(".")[0].split("_")[-1]))[-1]
