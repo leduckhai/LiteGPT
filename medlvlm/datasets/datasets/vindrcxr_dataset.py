@@ -44,9 +44,9 @@ class VinDrCXRDataset(Dataset):
         image = Image.open(image_path).convert("RGB")
         image = self.vis_processor(image)
 
-        answer = info['grounded_diseases']
+        answer = info['global_labels']
         # instruction = random.choice(self.instruction_pool)
-        instruction = "<Img><ImageHere></Img> {} ".format(instruction)
+        instruction = "<Img><ImageHere></Img>" 
 
         return {
             "image": image,
