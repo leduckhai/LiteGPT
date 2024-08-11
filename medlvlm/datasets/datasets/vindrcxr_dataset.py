@@ -50,7 +50,7 @@ class VinDrCXRDataset(Dataset):
 
         return {
             "image": image,
-            "audio": torch.rand(80, 3000, dtype=torch.float16),
+            "audio": torch.rand(80, 3000, dtype=torch.float16), # double length of the max_source_positions
             "instruction_input": instruction,
             "answer": answer,
             "image_id": info['image_id'],
