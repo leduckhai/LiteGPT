@@ -15,7 +15,7 @@ IMG_DIM_VIT_LLAMA = 5632 # 1408 * 4
 @registry.register_model("medlvlm")
 class MedLVLM(MedLVLMBase):
     """
-    MiniGPT-v2 model
+    MedLVLM model
     """
 
     PRETRAINED_MODEL_CONFIG_DICT = {
@@ -25,11 +25,13 @@ class MedLVLM(MedLVLMBase):
     def __init__(
             self,
             vision_model="eva_clip_g",
+            audio_model="whisper",
             img_size=448,
             drop_path_rate=0,
             use_grad_checkpoint=False,
-            vit_precision="fp16",
+            precision="fp16",
             freeze_vision=True,
+            freeze_audio=True,
             language_model="",
             prompt_template='[INST] {} [/INST]',
             max_txt_len=300,
@@ -47,11 +49,13 @@ class MedLVLM(MedLVLMBase):
     ):
         super().__init__(
             vision_model=vision_model,
+            audio_model=audio_model,
             img_size=img_size,
             drop_path_rate=drop_path_rate,
             use_grad_checkpoint=use_grad_checkpoint,
-            vit_precision=vit_precision,
+            precision=precision,
             freeze_vision=freeze_vision,
+            freeze_audio=freeze_audio,
             language_model=language_model,
             max_txt_len=max_txt_len,
             max_context_len=max_context_len,
@@ -78,6 +82,8 @@ class MedLVLM(MedLVLMBase):
                 nn.Linear(IMG_DIM_VIT_LLAMA, self.language_model.config.hidden_size)
             )
 
+        self.audio_language_proj = nn.Linear(self.audio_encoder.d_model, self.language_model.config.hidden_size)
+
         self.chat_template = chat_template
 
         if use_grad_checkpoint_llm:
@@ -98,17 +104,29 @@ class MedLVLM(MedLVLMBase):
             inputs_language = self.language_proj(image_embeds)
             atts_language = torch.ones(inputs_language.size()[:-1], dtype=torch.long).to(image.device)
         return inputs_language, atts_language
+    
+    def encode_audio(self, audio):
+        device = audio.device
+
+        with self.maybe_autocast():
+            audio_embeds = self.audio_encoder(audio).to(device)
+
+            inputs_language = self.audio_language_proj(audio_embeds)
+            atts_language = torch.ones(inputs_language.size()[:-1], dtype=torch.long).to(audio.device)
+        return inputs_language, atts_language
 
     @classmethod
     def from_config(cls, cfg):
         vision_model = cfg.get("vision_model", "eva_clip_g")
+        audio_model = cfg.get("audio_model", "whisper")
         img_size = cfg.get("image_size")
         language_model = cfg.get("language_model")
 
         drop_path_rate = cfg.get("drop_path_rate", 0)
         use_grad_checkpoint = cfg.get("use_grad_checkpoint", False)
-        vit_precision = cfg.get("vit_precision", "fp16")
+        precision = cfg.get("precision", "fp16")
         freeze_vision = cfg.get("freeze_vision", True)
+        freeze_audio = cfg.get("freeze_audio", True)
         low_resource = cfg.get("low_resource", False)
 
         prompt_template = cfg.get("prompt_template", '[INST] {} [/INST]')
@@ -125,11 +143,13 @@ class MedLVLM(MedLVLMBase):
 
         model = cls(
             vision_model=vision_model,
+            audio_model=audio_model,
             img_size=img_size,
             drop_path_rate=drop_path_rate,
             use_grad_checkpoint=use_grad_checkpoint,
-            vit_precision=vit_precision,
+            precision=precision,
             freeze_vision=freeze_vision,
+            freeze_audio=freeze_audio,
             language_model=language_model,
             prompt_template=prompt_template,
             max_txt_len=max_txt_len,

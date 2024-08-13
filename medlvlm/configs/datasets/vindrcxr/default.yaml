@@ -2,5 +2,5 @@ datasets:
   vindrcxr_train:
     data_type: images
     build_info:
-      image_path: /path/to/images/train
-      ann_path: /path/to/annotations/train
+      image_path: ../Minigpt_Med/LVLM-Med/1Vindata/vindr-cxr-images/images/train
+      ann_path: ../Minigpt_Med/LVLM-Med/1Vindata/vindr-cxr-images/annotations/train/global_labels_train_v2.json

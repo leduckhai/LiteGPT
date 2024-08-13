@@ -1,9 +1,9 @@
+import os
 import argparse
 import json
 from medlvlm.datasets.datasets.vindrcxr_dataset import VinDrCXRDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import os
 from medlvlm.common.registry import registry
 from medlvlm.common.config import Config
 from medlvlm.conversation.conversation import Conversation, SeparatorStyle
@@ -91,18 +91,20 @@ def evaluate(args):
         results = []
         for batch in tqdm(eval_dataloader):
             images = batch["image"].half()
+            audios = batch["audio"]
             instruction_input = batch["instruction_input"]
             ground_truth = batch["answer"]
             image_ids = batch["image_id"]
             texts = prepare_texts(instruction_input, conv_temp)
             predicts = model.generate(images=images,
+                                      audios=audios,
                                       texts=texts,
                                       max_new_tokens=max_new_tokens,
                                       temperature=temperature,
                                       top_p=top_p,
                                       do_sample=do_sample)
             results.extend([{"image_id": image_id, "ground_truth": gt, "predict": predict} for image_id, gt, predict in zip(image_ids, ground_truth, predicts)])
-        
+            break
     with open(os.path.join(cfg.run_cfg.save_path, "outputs_test.json"),"w") as jsonfile:
         json.dump(results, jsonfile, ensure_ascii=False)
 

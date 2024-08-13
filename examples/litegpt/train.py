@@ -29,7 +29,7 @@ from medlvlm.common.utils import now
 
 # imports modules for registration
 from medlvlm.models import *
-from evaluate import *
+from examples.litegpt.evaluate import *
 from medlvlm.processors import *
 from medlvlm.runners import *
 from medlvlm.tasks import *
@@ -97,7 +97,7 @@ def main():
 
     if cfg.run_cfg.wandb_log:
         wandb.login(key=cfg.run_cfg.wandb_token)
-        wandb.init(project="medlvlm", name=cfg.run_cfg.job_name)
+        wandb.init(project="ars2text", name=cfg.run_cfg.job_name)
         wandb.watch(model)
 
     runner = get_runner_class(cfg)(

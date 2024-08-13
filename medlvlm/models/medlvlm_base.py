@@ -13,17 +13,19 @@ from medlvlm.conversation.conversation import StoppingCriteriaSub
 
 class MedLVLMBase(BaseModel):
     """
-    Base class for MiniGPT-4 and MiniGPT-v2
+    Base class for MedLVLMBase
     """
 
     def __init__(
         self,
         vision_model="eva_clip_g",
+        audio_model="whisper",
         img_size=224,
         drop_path_rate=0,
         use_grad_checkpoint=False,
-        vit_precision="fp16",
+        precision="fp16",
         freeze_vision=True,
+        freeze_audio=True,
         language_model="",
         max_txt_len=32,
         max_context_len=3800,
@@ -56,7 +58,13 @@ class MedLVLMBase(BaseModel):
             img_size=img_size, 
             drop_path_rate=drop_path_rate, 
             use_checkpoint=use_grad_checkpoint, 
-            precision=vit_precision
+            precision=precision
+        )
+
+        self.audio_encoder = self.init_audio_encoder(
+            audio_model,
+            freeze_audio,
+            precision=precision
         )
 
         self.max_txt_len = max_txt_len
@@ -72,7 +80,7 @@ class MedLVLMBase(BaseModel):
         self.visual_encoder.to("cpu")
         self.visual_encoder.float()
 
-    def get_context_emb(self, prompt, img_list):
+    def get_context_emb(self, prompt, img_list, audio):
         device = img_list[0].device
         prompt_segs = prompt.split('<ImageHere>')
         assert len(prompt_segs) == len(img_list) + 1, "Unmatched numbers of image placeholders and images."
@@ -83,14 +91,14 @@ class MedLVLMBase(BaseModel):
         ]
         seg_embs = [self.embed_tokens(seg_t) for seg_t in seg_tokens]
 
-        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1]]
+        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1], audio[0].to(self.device)] # [audio]
         mixed_embs = torch.cat(mixed_embs, dim=1)
         return mixed_embs
 
-    def prompt_wrap(self, img_embeds, atts_img, prompts, lengths=None):
+    def prompt_wrap(self, img_embeds, audio_embeds, img_atts, prompts, lengths=None):
         if prompts is None or len(prompts) == 0:
             # prompts is not provided, just return the original image embedding
-            return img_embeds, atts_img
+            return img_embeds, img_atts
         elif img_embeds is None:
             # prompt is provided but there is no image embedding. return the prompt embedding in right padding
             self.language_tokenizer.padding_side = "right"
@@ -109,7 +117,7 @@ class MedLVLMBase(BaseModel):
             if isinstance(prompts, str):
                 prompts = [prompts] * len(img_embeds)
 
-            for idx, (each_img_embed, each_prompt) in enumerate(zip(img_embeds, prompts)):
+            for idx, (each_img_embed, each_prompt, each_audio_embed) in enumerate(zip(img_embeds, prompts, audio_embeds)):
                 pn = each_img_embed.shape[-2]
                 if lengths is not None:
                     each_img_embed = each_img_embed.reshape(-1, each_img_embed.shape[-1])
@@ -125,7 +133,16 @@ class MedLVLMBase(BaseModel):
                 p_tokens = self.language_tokenizer(
                     p_segs[-1], return_tensors="pt", add_special_tokens=False).to(img_embeds.device)
                 p_embed = self.embed_tokens(p_tokens.input_ids)
-                wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
+
+                each_audio_embed = each_audio_embed.unsqueeze(0)
+                # print('Shape: ', wrapped_emb.shape, p_embed.shape, each_audio_embed.shape)
+
+                # each_audio_embed will be of shape [1, audio_embedding_dim]
+                if each_audio_embed is None:
+                    wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
+                else:
+                    wrapped_emb = torch.cat([wrapped_emb, p_embed, each_audio_embed], dim=1)
+                
                 emb_lists.append(wrapped_emb)
 
             emb_lens = [emb.shape[1] for emb in emb_lists]
@@ -217,6 +234,12 @@ class MedLVLMBase(BaseModel):
 
     def preparing_embedding(self, samples):
         ### prepare input tokens
+        if "audio" in samples and "instruction_input" in samples:
+            for instruction_input in samples["instruction_input"]:
+                if not instruction_input.endswith("<Img><ImageHere></Img>"):
+                    raise ValueError("You cannot specify both audio and instruction_input at the same time")
+            audio_embeds, audio_atts = self.encode_audio(samples["audio"])
+
         if 'image' in samples:
             img_embeds, img_atts = self.encode_img(samples["image"])
         else:
@@ -245,14 +268,14 @@ class MedLVLMBase(BaseModel):
 
             if hasattr(self, 'chat_template') and self.chat_template:
                 instruction = [self.prompt_template.format(instruct) for instruct in instruction]
-
+            print('output shapes: ', len(img_embeds), len(audio_embeds), len(img_atts), len(instruction))
             if 'length' in samples:
                 # the input is a image train (like videos)
                 bsz, pn, hs = img_embeds.shape
                 img_embeds = img_embeds.reshape(len(samples['image']), -1, pn, hs)
-                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, img_atts, instruction, samples['length'])
+                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, audio_embeds, img_atts, instruction, samples['length'])
             else:
-                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, img_atts, instruction)
+                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, audio_embeds, img_atts, instruction)
 
             ### prepare target tokens
             self.language_tokenizer.padding_side = "right"
@@ -324,8 +347,9 @@ class MedLVLMBase(BaseModel):
     @torch.no_grad()
     def generate(
         self,
-        images,
-        texts,
+        images=None,
+        audios=None,
+        texts=None,
         num_beams=1,
         max_new_tokens=20,
         min_length=1,
@@ -339,14 +363,25 @@ class MedLVLMBase(BaseModel):
         '''
             function for generate test use
         '''
-
+        if audios is not None and texts is not None:
+            for text in texts:
+                if not text.endswith("<Img><ImageHere></Img> [/INST]"):
+                    raise ValueError("You cannot specify both audio and texts at the same time")
+                
+        if images is not None and texts is None:
+            raise ValueError("You must specify <Img><ImageHere></Img> in the text")
+        
         stopping_criteria = StoppingCriteriaList([StoppingCriteriaSub(
             stops=[torch.tensor([i]).to(self.device) for i in stop_words_ids])])
 
         img_embeds, atts_img = self.encode_img(images.to(self.device))
+
         image_lists = [[image_emb[None]] for image_emb in img_embeds]
 
-        batch_embs = [self.get_context_emb(text, img_list) for text, img_list in zip(texts, image_lists)]
+        audio_embeds, atts_audio = self.encode_audio(audios.to(self.device))
+        audio_embeds = [[audio_embed[None]] for audio_embed in audio_embeds]
+
+        batch_embs = [self.get_context_emb(text, img_list, audio_embed) for text, img_list, audio_embed in zip(texts, image_lists, audio_embeds)]
 
         batch_size = len(batch_embs)
         max_len = max([emb.shape[1] for emb in batch_embs])
