@@ -7,7 +7,7 @@ model:
   language_model: meta-llama/Llama-2-7b-chat-hf
   vision_model: biomed_clip
   audio_model: whisper
-  ckpt: medlvlm/Hanh/Test_biomed_clip/20240810195/checkpoint_0.pth
+  ckpt: medlvlm/Hanh/Test_biomed_clip/20240812212/checkpoint_0.pth
   use_grad_checkpoint: true
   chat_template: true
   low_resource: true
