@@ -5,9 +5,8 @@ model:
   image_size: 224
   end_sym: "</s>"
   vision_model: "biomed_clip"
-  audio_model: "whisper"
   language_model: "meta-llama/Llama-2-7b-chat-hf"
-  ckpt: "../Minigpt_Med/LVLM-Med/3Pretrained-models/LLama2/Pretrain-checkpoint/checkpoint_stage3.pth"
+  ckpt: "../../../Minigpt_Med/LVLM-Med/3Pretrained-models/LLama2/Pretrain-checkpoint/checkpoint_stage3.pth"
   use_grad_checkpoint: True
   chat_template: True
   low_resource: True
@@ -17,7 +16,7 @@ model:
 
 datasets:
   vindrcxr_train:
-    batch_size: 4
+    batch_size: 8
     vis_processor:
       train:
         name: "blip2_image_train"
@@ -39,7 +38,7 @@ run:
   max_epoch: 1
   num_workers: 2
   warmup_steps: 1000
-  iters_per_epoch: 1
+  iters_per_epoch: 2
 
   seed: 42
   output_dir: "Hanh/Test_biomed_clip"
@@ -57,6 +56,4 @@ run:
 
   wandb_log: True
   wandb_token: "e7134de62fe8b5b393083a97985006950575f545"
-  job_name: bioclip-llama
-
-
+  job_name: bioclip-llama-global

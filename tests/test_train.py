@@ -97,7 +97,7 @@ def main():
 
     if cfg.run_cfg.wandb_log:
         wandb.login(key=cfg.run_cfg.wandb_token)
-        wandb.init(project="medlvlm", name=cfg.run_cfg.job_name)
+        wandb.init(project="ars2text", name=cfg.run_cfg.job_name)
         wandb.watch(model)
 
     runner = get_runner_class(cfg)(
@@ -108,7 +108,7 @@ def main():
     if hasattr(args, 'cfg_eval_path'):
         args.cfg_path = args.cfg_eval_path
 
-        model_path = "{}/{}".format(cfg.run_cfg.output_dir, job_id)
+        model_path = "medlvlm/{}/{}".format(cfg.run_cfg.output_dir, job_id)
         ckpt_paths = glob.glob(os.path.join(model_path, "*.pth"))
         ckpt_names = [os.path.basename(ckp_path) for ckp_path in ckpt_paths]
         last_ckpt_name = sorted(ckpt_names, key=lambda x: int(x.split(".")[0].split("_")[-1]))[-1]

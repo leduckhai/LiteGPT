@@ -117,7 +117,7 @@ class MedLVLMBase(BaseModel):
             if isinstance(prompts, str):
                 prompts = [prompts] * len(img_embeds)
 
-            for idx, (audio_embed, each_img_embed, each_prompt) in enumerate(zip(audio_embeds, img_embeds, prompts)):
+            for idx, (each_img_embed, each_prompt, each_audio_embed) in enumerate(zip(img_embeds, prompts, audio_embeds)):
                 pn = each_img_embed.shape[-2]
                 if lengths is not None:
                     each_img_embed = each_img_embed.reshape(-1, each_img_embed.shape[-1])
@@ -133,10 +133,16 @@ class MedLVLMBase(BaseModel):
                 p_tokens = self.language_tokenizer(
                     p_segs[-1], return_tensors="pt", add_special_tokens=False).to(img_embeds.device)
                 p_embed = self.embed_tokens(p_tokens.input_ids)
-                if audio_embeds is None:
+
+                each_audio_embed = each_audio_embed.unsqueeze(0)
+                # print('Shape: ', wrapped_emb.shape, p_embed.shape, each_audio_embed.shape)
+
+                # each_audio_embed will be of shape [1, audio_embedding_dim]
+                if each_audio_embed is None:
                     wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
                 else:
-                    wrapped_emb = torch.cat([wrapped_emb, p_embed, audio_embed], dim=1)
+                    wrapped_emb = torch.cat([wrapped_emb, p_embed, each_audio_embed], dim=1)
+                
                 emb_lists.append(wrapped_emb)
 
             emb_lens = [emb.shape[1] for emb in emb_lists]
@@ -262,7 +268,7 @@ class MedLVLMBase(BaseModel):
 
             if hasattr(self, 'chat_template') and self.chat_template:
                 instruction = [self.prompt_template.format(instruct) for instruct in instruction]
-
+            print('output shapes: ', len(img_embeds), len(audio_embeds), len(img_atts), len(instruction))
             if 'length' in samples:
                 # the input is a image train (like videos)
                 bsz, pn, hs = img_embeds.shape
