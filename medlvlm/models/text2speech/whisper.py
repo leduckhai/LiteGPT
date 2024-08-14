@@ -1,12 +1,17 @@
 from transformers.models.whisper.modeling_whisper import *
 import torch.nn as nn
+from transformers import PerceiverConfig, PerceiverModel
 
 class WhisperForLiteGPT(nn.Module):
     def __init__(self):
         super().__init__()
         self.asr_encoder = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small").model.encoder
         self.d_model = self.asr_encoder.config.d_model
-        self.pooling = nn.AdaptiveAvgPool2d((256, self.d_model)) # 1500 -> 256
+
+        perceiver_config = PerceiverConfig(d_model=self.d_model,
+                                           d_latents=self.d_model,
+                                           num_latents=75)
+        self.perceiver = PerceiverModel(perceiver_config) # 1500 -> 75
         
     def forward(
         self,
@@ -25,7 +30,7 @@ class WhisperForLiteGPT(nn.Module):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         ).last_hidden_state
-        output = self.pooling(output)
+        output = self.perceiver(output).last_hidden_state
         return output
     
 def create_whisper(**kwargs):

@@ -117,7 +117,7 @@ class MedLVLMBase(BaseModel):
             if isinstance(prompts, str):
                 prompts = [prompts] * len(img_embeds)
 
-            for idx, (each_img_embed, each_prompt) in enumerate(zip(img_embeds, prompts)):
+            for idx, (audio_embed, each_img_embed, each_prompt) in enumerate(zip(audio_embeds, img_embeds, prompts)):
                 pn = each_img_embed.shape[-2]
                 if lengths is not None:
                     each_img_embed = each_img_embed.reshape(-1, each_img_embed.shape[-1])
@@ -136,7 +136,7 @@ class MedLVLMBase(BaseModel):
                 if audio_embeds is None:
                     wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
                 else:
-                    wrapped_emb = torch.cat([wrapped_emb, p_embed, audio_embeds], dim=1)
+                    wrapped_emb = torch.cat([wrapped_emb, p_embed, audio_embed], dim=1)
                 emb_lists.append(wrapped_emb)
 
             emb_lens = [emb.shape[1] for emb in emb_lists]
