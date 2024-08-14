@@ -5,7 +5,7 @@ from transformers import PerceiverConfig, PerceiverModel
 class WhisperForLiteGPT(nn.Module):
     def __init__(self):
         super().__init__()
-        self.asr_encoder = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small").model.encoder
+        self.asr_encoder = WhisperForConditionalGeneration.from_pretrained("Hanhpt23/whisper-small-multimed").model.encoder
         self.d_model = self.asr_encoder.config.d_model
 
         perceiver_config = PerceiverConfig(d_model=self.d_model,
