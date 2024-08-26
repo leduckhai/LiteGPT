@@ -1,9 +1,8 @@
 model:
-  arch: medlvlm
+  arch: pointvlm
 
   # vision encoder
-  vision_model: "eva_clip_g"
-  image_size: 448
+  vision_model: "point_transformer"
   drop_path_rate: 0
   use_grad_checkpoint: False
   precision: "fp16"
@@ -11,19 +10,13 @@ model:
 
   # generation configs
   prompt: ""
-  language_model: "please set this value to the path of language model"
+
+  language_model: "meta-llama/Llama-2-7b-chat-hf"
   lora_r: 64
   lora_alpha: 16
 
 
 preprocess:
-    vis_processor:
-        train:
-          name: "blip2_image_train"
-          image_size: 448
-        eval:
-          name: "blip2_image_eval"
-          image_size: 448
     text_processor:
         train:
           name: "blip_caption"

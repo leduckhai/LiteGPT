@@ -2,4 +2,4 @@ env:
   # For default users
   # cache_root: "cache"
   # For internal use with persistent storage
-  cache_root: "/export/home/.cache/medlvlm"
+  cache_root: "work/cs-grad/tuanle/.cache/medlvlm"

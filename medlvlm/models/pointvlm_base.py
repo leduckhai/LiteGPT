@@ -11,16 +11,15 @@ from transformers import StoppingCriteria, StoppingCriteriaList
 
 from medlvlm.conversation.conversation import StoppingCriteriaSub
 
-class MedLVLMBase(BaseModel):
+class PointVLMBase(BaseModel):
     """
     Base class for MedLVLMBase
     """
 
     def __init__(
         self,
-        vision_model="eva_clip_g",
+        vision_model="point_transformer",
         audio_model="whisper",
-        img_size=224,
         drop_path_rate=0,
         use_grad_checkpoint=False,
         precision="fp16",
@@ -54,7 +53,7 @@ class MedLVLMBase(BaseModel):
         if vision_model == "PointTransformer":
             self.visual_encoder, self.ln_vision, self.num_concat = self.init_vision_encoder(
                 vision_model,
-                freeze_vision,  
+                freeze_vision, 
                 drop_path_rate=drop_path_rate, 
                 use_checkpoint=use_grad_checkpoint, 
                 precision=precision
@@ -63,7 +62,6 @@ class MedLVLMBase(BaseModel):
             self.visual_encoder, self.ln_vision, self.num_concat = self.init_vision_encoder(
                 vision_model,
                 freeze_vision, 
-                img_size=img_size, 
                 drop_path_rate=drop_path_rate, 
                 use_checkpoint=use_grad_checkpoint, 
                 precision=precision
@@ -125,7 +123,7 @@ class MedLVLMBase(BaseModel):
             if isinstance(prompts, str):
                 prompts = [prompts] * len(img_embeds)
 
-            for idx, (each_img_embed, each_prompt, each_audio_embed) in enumerate(zip(img_embeds, prompts, audio_embeds)):
+            for idx, (each_img_embed, each_prompt) in enumerate(zip(img_embeds, prompts)):
                 pn = each_img_embed.shape[-2]
                 if lengths is not None:
                     each_img_embed = each_img_embed.reshape(-1, each_img_embed.shape[-1])
@@ -142,15 +140,11 @@ class MedLVLMBase(BaseModel):
                     p_segs[-1], return_tensors="pt", add_special_tokens=False).to(img_embeds.device)
                 p_embed = self.embed_tokens(p_tokens.input_ids)
 
-                each_audio_embed = each_audio_embed.unsqueeze(0)
+            
                 # print('Shape: ', wrapped_emb.shape, p_embed.shape, each_audio_embed.shape)
 
                 # each_audio_embed will be of shape [1, audio_embedding_dim]
-                if each_audio_embed is None:
-                    wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
-                else:
-                    wrapped_emb = torch.cat([wrapped_emb, p_embed, each_audio_embed], dim=1)
-                
+                wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
                 emb_lists.append(wrapped_emb)
 
             emb_lens = [emb.shape[1] for emb in emb_lists]
@@ -276,14 +270,15 @@ class MedLVLMBase(BaseModel):
 
             if hasattr(self, 'chat_template') and self.chat_template:
                 instruction = [self.prompt_template.format(instruct) for instruct in instruction]
-            print('output shapes: ', len(img_embeds), len(audio_embeds), len(img_atts), len(instruction))
+            # print('output shapes: ', len(img_embeds), len(audio_embeds), len(img_atts), len(instruction))
             if 'length' in samples:
                 # the input is a image train (like videos)
                 bsz, pn, hs = img_embeds.shape
                 img_embeds = img_embeds.reshape(len(samples['image']), -1, pn, hs)
                 cond_embeds, cond_atts = self.prompt_wrap(img_embeds, audio_embeds, img_atts, instruction, samples['length'])
             else:
-                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, audio_embeds, img_atts, instruction)
+                # cond_embeds, cond_atts = self.prompt_wrap(img_embeds, img_atts, prompts = instruction)
+                cond_embeds, cond_atts = self.prompt_wrap(img_embeds, None, img_atts, instruction)
 
             ### prepare target tokens
             self.language_tokenizer.padding_side = "right"
@@ -419,15 +414,6 @@ class MedLVLMBase(BaseModel):
                 # stopping_criteria=stopping_criteria,
             )
 
-        # with self.maybe_autocast():
-        #     outputs = self.language_model.generate(
-        #         inputs_embeds=embs,
-        #         attention_mask=attn_mask,
-        #         max_new_tokens=max_new_tokens,
-        #         num_beams=num_beams,
-        #         do_sample=do_sample,
-        #         # stopping_criteria=stopping_criteria,
-        #     )
         answers = []
         for output_token in outputs:
             if output_token[0] == 0:

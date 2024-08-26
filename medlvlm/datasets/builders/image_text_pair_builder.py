@@ -19,6 +19,35 @@ from medlvlm.datasets.datasets.coco_vqa_datasets import COCOVQADataset
 from medlvlm.datasets.datasets.ocrvqa_dataset import OCRVQADataset
 from medlvlm.datasets.datasets.coco_caption import COCOCapDataset
 from medlvlm.datasets.datasets.vindrcxr_dataset import VinDrCXRDataset
+from medlvlm.datasets.datasets.scannet_datasets import ScannetVQADataset
+
+
+@registry.register_builder("pointvlm_train")
+class ScannetVQABuilder(BaseDatasetBuilder):
+    train_dataset_cls = ScannetVQADataset
+    eval_dataset_cls = ScannetVQADataset
+    DATASET_CONFIG_DICT = {
+        "default": "configs/datasets/pointvlm/default.yaml",
+    }
+
+    def build_datasets(self):
+        # at this point, all the annotations and image/videos should be all downloaded to the specified locations.
+        logging.info("Building datasets...")
+        self.build_processors()
+        build_info = self.config.build_info
+        print(build_info)
+        datasets = dict()
+
+        # create datasets
+        dataset_cls = self.train_dataset_cls
+        datasets["train"] = dataset_cls(
+            vis_processor=self.vis_processors["train"],
+            text_processor=self.text_processors["train"],
+            ann_path=build_info.ann_path,
+            vis_root=build_info.image_path
+        )
+
+        return datasets
 
 @registry.register_builder("vindrcxr_train")
 class VinDrCXRBuilder(BaseDatasetBuilder):

@@ -46,7 +46,9 @@ class VinDrCXRDataset(Dataset):
         answer = info['grounded_diseases']
         instruction = random.choice(self.instruction_pool)
         instruction = "<Img><ImageHere></Img> {} ".format(instruction)
-
+        # [B, number of point clouds, dimension (6) 3 toa do xyz 3 color rgb]
+        # [1, 200000, 6]
+        # <Img><ImageHere></Img> where is the table? the table is on the floor.
         return {
             "image": image,
             "instruction_input": instruction,

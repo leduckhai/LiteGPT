@@ -1,0 +1,7 @@
+datasets:
+  pointvlm_train:
+    data_type: images
+    build_info:
+      image_path: data/Scannet/scans
+      ann_path: data/qa/ScanQA_v1.0_train.json
+      num_points: 200000

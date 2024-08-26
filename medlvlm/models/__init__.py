@@ -13,6 +13,8 @@ from medlvlm.common.registry import registry
 from medlvlm.models.base_model import BaseModel
 from medlvlm.models.medlvlm_base import MedLVLMBase
 from medlvlm.models.medlvlm import MedLVLM
+from medlvlm.models.pointvlm_base import PointVLMBase
+from medlvlm.models.pointvlm import PointVLM
 from medlvlm.processors.base_processor import BaseProcessor
 
 
@@ -20,7 +22,9 @@ __all__ = [
     "load_model",
     "BaseModel",
     "MedLVLMBase",
-    "MedLVLM"
+    "MedLVLM",
+    "PointVLMBase",
+    "PointVLM"
 ]
 
 
