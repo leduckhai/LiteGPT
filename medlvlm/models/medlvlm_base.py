@@ -96,6 +96,10 @@ class MedLVLMBase(BaseModel):
         return mixed_embs
 
     def prompt_wrap(self, img_embeds, audio_embeds, img_atts, prompts, lengths=None):
+        if audio_embeds is not None:
+            if prompts is None or len(prompts) == 0:
+                prompts = "<Img><ImageHere></Img>"
+
         if prompts is None or len(prompts) == 0:
             # prompts is not provided, just return the original image embedding
             return img_embeds, img_atts
@@ -133,17 +137,12 @@ class MedLVLMBase(BaseModel):
                 p_tokens = self.language_tokenizer(
                     p_segs[-1], return_tensors="pt", add_special_tokens=False).to(img_embeds.device)
                 p_embed = self.embed_tokens(p_tokens.input_ids)
-
-                each_audio_embed = each_audio_embed.unsqueeze(0)
-                # print('Shape: ', wrapped_emb.shape, p_embed.shape, each_audio_embed.shape)
-
-                # each_audio_embed will be of shape [1, audio_embedding_dim]
-                if each_audio_embed is None:
-                    wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
-                else:
-                    wrapped_emb = torch.cat([wrapped_emb, p_embed, each_audio_embed], dim=1)
-                
+                wrapped_emb = torch.cat([wrapped_emb, p_embed], dim=1)
                 emb_lists.append(wrapped_emb)
+
+            if audio_embeds is not None:
+                for emb, each_audio_embed in zip(emb_lists, audio_embeds):
+                    emb = torch.cat([emb, each_audio_embed[None].to(emb.device)], dim=1)
 
             emb_lens = [emb.shape[1] for emb in emb_lists]
             pad_emb = self.embed_tokens(torch.tensor(self.language_tokenizer.pad_token_id, device=img_embeds.device))
@@ -234,7 +233,9 @@ class MedLVLMBase(BaseModel):
 
     def preparing_embedding(self, samples):
         ### prepare input tokens
+        audio_embeds, audio_atts = None, None
         if "audio" in samples and "instruction_input" in samples:
+            # The audio should not contain any instructional input. The prompt should only include <Img><ImageHere></Img>
             for instruction_input in samples["instruction_input"]:
                 if not instruction_input.endswith("<Img><ImageHere></Img>"):
                     raise ValueError("You cannot specify both audio and instruction_input at the same time")
@@ -268,7 +269,7 @@ class MedLVLMBase(BaseModel):
 
             if hasattr(self, 'chat_template') and self.chat_template:
                 instruction = [self.prompt_template.format(instruct) for instruct in instruction]
-            print('output shapes: ', len(img_embeds), len(audio_embeds), len(img_atts), len(instruction))
+
             if 'length' in samples:
                 # the input is a image train (like videos)
                 bsz, pn, hs = img_embeds.shape
