@@ -121,7 +121,7 @@ class MedLVLMBase(BaseModel):
             if isinstance(prompts, str):
                 prompts = [prompts] * len(img_embeds)
 
-            for idx, (each_img_embed, each_prompt, each_audio_embed) in enumerate(zip(img_embeds, prompts, audio_embeds)):
+            for idx, (each_img_embed, each_prompt) in enumerate(zip(img_embeds, prompts)):
                 pn = each_img_embed.shape[-2]
                 if lengths is not None:
                     each_img_embed = each_img_embed.reshape(-1, each_img_embed.shape[-1])
