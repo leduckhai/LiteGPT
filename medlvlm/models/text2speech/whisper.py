@@ -4,9 +4,10 @@ import torch.nn as nn
 class WhisperForLiteGPT(nn.Module):
     def __init__(self):
         super().__init__()
-        self.asr_encoder = WhisperForConditionalGeneration.from_pretrained("Hanhpt23/whisper-small-multimed",
+        self.asr_encoder = WhisperForConditionalGeneration.from_pretrained("openai/whisper-tiny",
                                                                            max_source_positions = 1500, # 256 
-                                                                           ignore_mismatched_sizes=True).model.encoder
+                                                                           ignore_mismatched_sizes=True
+                                                                           ).model.encoder
         self.d_model = self.asr_encoder.config.d_model
         self.pooling = nn.AdaptiveAvgPool2d((256, self.d_model)) # 1500 -> 256
         

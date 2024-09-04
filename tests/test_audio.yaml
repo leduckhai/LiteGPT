@@ -7,15 +7,19 @@ model:
   language_model: meta-llama/Llama-2-7b-chat-hf
   vision_model: biomed_clip
   audio_model: whisper
-  ckpt: medlvlm/Hanh/Test_biomed_clip/20240904103/checkpoint_0.pth
+  ckpt: medlvlm/Hanh/Test_biomed_clip/20240904154/checkpoint_0.pth
   use_grad_checkpoint: true
   chat_template: true
   low_resource: true
   lora_r: 64
   lora_alpha: 16
   bits: 8
+  freeze_audio: false
 datasets:
-  vindrcxr_train:
+  audio_train:
+    audio_processor:
+      train:
+        name: whisper_processor
     vis_processor:
       train:
         name: blip2_image_eval
@@ -24,12 +28,13 @@ datasets:
       train:
         name: blip_caption
 evaluation_datasets:
-  vindrcxr_val:
+  audio_val:
     eval_file_path: ../Minigpt_Med/LVLM-Med/1Vindata/vindr-cxr-images/annotations/test/global_labels_test.json
     img_path: ../Minigpt_Med/LVLM-Med/1Vindata/vindr-cxr-images/images/test
     prompt_test: '[vqa] Given the provided chest X-ray image, which of the following
       diagnoses are present (select all that apply): COPD, Lung Tumor, Pneumonia,
       Tuberculosis, Other Disease, or No Finding?'
+    audio_path: medlvlm/datasets/example_datasets/audio_datasets
     batch_size: 2
     max_new_tokens: 512
     temperature: 0.1

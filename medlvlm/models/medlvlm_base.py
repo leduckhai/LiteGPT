@@ -269,6 +269,7 @@ class MedLVLMBase(BaseModel):
             if hasattr(self, 'chat_template') and self.chat_template:
                 instruction = [self.prompt_template.format(instruct) for instruct in instruction]
             print('output shapes: ', len(img_embeds), len(audio_embeds), len(img_atts), len(instruction))
+            # print('output shapes: ', img_embeds[0], audio_embeds[0], img_atts[0], instruction[0])
             if 'length' in samples:
                 # the input is a image train (like videos)
                 bsz, pn, hs = img_embeds.shape

@@ -41,6 +41,7 @@ class BaseDatasetBuilder:
 
         self.vis_processors = {"train": BaseProcessor(), "eval": BaseProcessor()}
         self.text_processors = {"train": BaseProcessor(), "eval": BaseProcessor()}
+        self.audio_processors = {"train": BaseProcessor(), "eval": BaseProcessor()}
 
     def build_datasets(self):
         # download, split, etc...
@@ -61,6 +62,7 @@ class BaseDatasetBuilder:
     def build_processors(self):
         vis_proc_cfg = self.config.get("vis_processor")
         txt_proc_cfg = self.config.get("text_processor")
+        audio_proc_cfg = self.config.get("audio_processor")
 
         if vis_proc_cfg is not None:
             vis_train_cfg = vis_proc_cfg.get("train")
@@ -75,6 +77,13 @@ class BaseDatasetBuilder:
 
             self.text_processors["train"] = self._build_proc_from_cfg(txt_train_cfg)
             self.text_processors["eval"] = self._build_proc_from_cfg(txt_eval_cfg)
+
+        if audio_proc_cfg is not None:
+            audio_train_cfg = audio_proc_cfg.get("train")
+            audio_eval_cfg = audio_proc_cfg.get("eval")
+
+            self.audio_processors["train"] = self._build_proc_from_cfg(audio_train_cfg)
+            self.audio_processors["eval"] = self._build_proc_from_cfg(audio_eval_cfg)
 
     @staticmethod
     def _build_proc_from_cfg(cfg):
@@ -195,6 +204,12 @@ class BaseDatasetBuilder:
                 else self.text_processors["eval"]
             )
 
+            audio_processor = (
+                self.audio_processors["train"]
+                if is_train
+                else self.audio_processors["eval"]
+            )
+
             # annotation path
             ann_paths = ann_info.get(split).storage
             if isinstance(ann_paths, str):
@@ -222,6 +237,7 @@ class BaseDatasetBuilder:
             datasets[split] = dataset_cls(
                 vis_processor=vis_processor,
                 text_processor=text_processor,
+                audio_processor=audio_processor,
                 ann_paths=ann_paths,
                 vis_root=vis_path,
             )

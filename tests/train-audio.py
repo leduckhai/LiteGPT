@@ -29,7 +29,7 @@ from medlvlm.common.utils import now
 
 # imports modules for registration
 from medlvlm.models import *
-from examples.litegpt.evaluate import *
+from tests.evaluate_audio import *
 from medlvlm.processors import *
 from medlvlm.runners import *
 from medlvlm.tasks import *
@@ -42,7 +42,7 @@ def parse_args():
 
     parser.add_argument("--cfg-path", required=True, help="path to train configuration file.")
     parser.add_argument("--cfg-eval-path", required=False, help="path to evaluation configuration file.")
-    parser.add_argument("--eval-dataset", type=list_of_str, default='val_vindrcxr', help="dataset to evaluate")
+    parser.add_argument("--eval-dataset", type=list_of_str, default='audio_val', help="dataset to evaluate")
     parser.add_argument(
         "--options",
         nargs="+",
@@ -94,6 +94,10 @@ def main():
     task = tasks.setup_task(cfg)
     datasets = task.build_datasets(cfg)
     model = task.build_model(cfg)
+
+    print('cfg: ', cfg)
+    print('datasets: ', datasets)
+    # print('model: ', model)
 
     if cfg.run_cfg.wandb_log:
         wandb.login(key=cfg.run_cfg.wandb_token)

@@ -11,6 +11,7 @@ from medlvlm.processors.blip_processors import (
     Blip2ImageEvalProcessor,
     BlipCaptionProcessor,
 )
+from medlvlm.processors.whisper_processors import WhisperAudioProcessor
 
 from medlvlm.common.registry import registry
 
@@ -19,6 +20,7 @@ __all__ = [
     "Blip2ImageTrainProcessor",
     "Blip2ImageEvalProcessor",
     "BlipCaptionProcessor",
+    'WhisperAudioProcessor',
 ]
 
 
