@@ -14,8 +14,8 @@ model:
   lora_r: 64
   lora_alpha: 16
   bits: 8
-  freeze_vision: False
-  freeze_audio: False
+  # freeze_vision: False
+  # freeze_audio: False
   
 datasets:
   audio_train:
@@ -41,10 +41,10 @@ run:
   warmup_lr: 1e-6
 
   weight_decay: 0.05
-  max_epoch: 1
+  max_epoch: 2
   num_workers: 2
   warmup_steps: 1000
-  iters_per_epoch: 1
+  iters_per_epoch: 3718
 
   seed: 42
   output_dir: "Hanh/Test_biomed_clip"

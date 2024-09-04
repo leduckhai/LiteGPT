@@ -14,8 +14,8 @@ model:
   lora_r: 64
   lora_alpha: 16
   bits: 8
-  freeze_audio: false
-  freeze_vision: false
+  # freeze_audio: false
+  # freeze_vision: false
 datasets:
   audio_train:
     audio_processor:
