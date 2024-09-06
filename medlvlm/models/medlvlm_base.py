@@ -80,7 +80,7 @@ class MedLVLMBase(BaseModel):
         self.visual_encoder.to("cpu")
         self.visual_encoder.float()
 
-    def get_context_emb(self, prompt, img_list, audio):
+    def get_context_emb(self, prompt, img_list, audio=None):
         device = img_list[0].device
         prompt_segs = prompt.split('<ImageHere>')
         assert len(prompt_segs) == len(img_list) + 1, "Unmatched numbers of image placeholders and images."
@@ -90,8 +90,11 @@ class MedLVLMBase(BaseModel):
             for i, seg in enumerate(prompt_segs)
         ]
         seg_embs = [self.embed_tokens(seg_t) for seg_t in seg_tokens]
-
-        mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1], audio[0].to(self.device)] # [audio]
+        
+        if audio is not None:
+            mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1], audio[0].to(self.device)] # [audio]
+        else:
+            mixed_embs = [emb for pair in zip(seg_embs[:-1], img_list) for emb in pair] + [seg_embs[-1]]
         mixed_embs = torch.cat(mixed_embs, dim=1)
         return mixed_embs
 
@@ -364,10 +367,21 @@ class MedLVLMBase(BaseModel):
         '''
             function for generate test use
         '''
+        # audio_embeds, audio_atts = None, None
+        # if "audio" in samples and "instruction_input" in samples:
+        #     # The audio should not contain any instructional input. The prompt should only include <Img><ImageHere></Img>
+        #     for instruction_input in samples["instruction_input"]:
+        #         if not instruction_input.endswith("<Img><ImageHere></Img>"):
+        #             raise ValueError("You cannot specify both audio and instruction_input at the same time")
+        #     audio_embeds, audio_atts = self.encode_audio(samples["audio"])
+
+        audio_embeds, audio_atts = None, None
         if audios is not None and texts is not None:
             for text in texts:
                 if not text.endswith("<Img><ImageHere></Img> [/INST]"):
                     raise ValueError("You cannot specify both audio and texts at the same time")
+            audio_embeds, audio_atts = self.encode_audio(audios.to(self.device))
+            audio_embeds = [[audio_embed[None]] for audio_embed in audio_embeds]
                 
         if images is not None and texts is None:
             raise ValueError("You must specify <Img><ImageHere></Img> in the text")
@@ -379,10 +393,10 @@ class MedLVLMBase(BaseModel):
 
         image_lists = [[image_emb[None]] for image_emb in img_embeds]
 
-        audio_embeds, atts_audio = self.encode_audio(audios.to(self.device))
-        audio_embeds = [[audio_embed[None]] for audio_embed in audio_embeds]
-
-        batch_embs = [self.get_context_emb(text, img_list, audio_embed) for text, img_list, audio_embed in zip(texts, image_lists, audio_embeds)]
+        if audio_embeds is not None:
+            batch_embs = [self.get_context_emb(text, img_list, audio_embed) for text, img_list, audio_embed in zip(texts, image_lists, audio_embeds)]
+        else:
+            batch_embs = [self.get_context_emb(text, img_list) for text, img_list in zip(texts, image_lists)]
 
         batch_size = len(batch_embs)
         max_len = max([emb.shape[1] for emb in batch_embs])
